@@ -1,0 +1,1 @@
+*/5 * * * * /home/pi/BSidesDCReg/rm_old_files.sh

@@ -40,14 +40,12 @@ led_code_red_gpio = 16
 led_code_green_gpio = 12
 led_on = GPIO.LOW
 led_off = GPIO.HIGH
-blink_time = 0.5
 
 #------------------------------------------------
 # Assign Values for QR Decoder
 #------------------------------------------------
 window_title = "BSidesDC Registration"
 image_path = "/var/lib/motion"
-cycle_sleep_time = 0.5
 window_size = (640,480)
 image_size = (640,360)
 image_offset = (0,120)
@@ -58,6 +56,13 @@ font_size = 15
 qr_text_offset = (50,25)
 new_image_file = False
 img_file = ""
+
+#------------------------------------------------
+# Assign Values for Different Timers
+#------------------------------------------------
+cycle_sleep_time = 0.5
+blink_time = 0.5
+status_display_time = 1.0
 
 #------------------------------------------------
 # Check For a Demo Test File
@@ -178,9 +183,14 @@ try:
 
   while True:
     #------------------------------------------------
+    # Clear Things
+    #------------------------------------------------
+    ClearCodeLED()
+    pygame.draw.rect(window,background_color,(0,0,640,480))
+
+    #------------------------------------------------
     # Add Image to Window
     #------------------------------------------------
-    pygame.draw.rect(window,background_color,(0,0,640,480))
     if demo_file != "":
       img_file = demo_file
     else:
@@ -198,7 +208,7 @@ try:
 #      print img_file
 
     img = pygame.image.load(img_file)
-    img = pygame.transform.scale(img,image_size)
+#    img = pygame.transform.scale(img,image_size)
     window.blit(img,image_offset)
 
     #------------------------------------------------
@@ -218,7 +228,7 @@ try:
     GPIO.output(led_status_green_gpio,led_off)
 
     #------------------------------------------------
-    # Priont QR Code in Window
+    # Priot QR Code in Window
     #------------------------------------------------
     myfont = pygame.font.SysFont(font_type,font_size)
     label = myfont.render(qr_code, 1, font_color)
@@ -230,10 +240,10 @@ try:
     pygame.display.flip()
 
     #------------------------------------------------
-    # Delay Before Next Running
+    # Display Status for Some Time
     #------------------------------------------------
-    time.sleep(cycle_sleep_time)
-    ClearCodeLED()
+    time.sleep(status_display_time)
+
 
 #------------------------------------------------
 # Cleanup and Exit
