@@ -19,8 +19,9 @@ import RPi.GPIO as GPIO
 import pygame, qrtools
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from watchdog.events import DirModifiedEvent
-from watchdog.events import LoggingEventHandler
+import urllib3
+
+#################################################
 
 #------------------------------------------------
 # Usage Message
@@ -47,61 +48,102 @@ led_off = GPIO.HIGH
 window_title = "BSidesDC Registration"
 image_path = "/var/lib/motion"
 window_size = (640,480)
+full_window_size = (0,0,640,480)
 image_size = (640,360)
 image_offset = (0,120)
 font_color = (255,255,0)
 background_color = (0,0,0)
 font_type = "monospace"
 font_size = 15
-qr_text_offset = (50,25)
+qr_text_offset = (25,25)
+server_text_offset = (25,75)
 new_image_file = False
 img_file = ""
 
 #------------------------------------------------
 # Assign Values for Different Timers
 #------------------------------------------------
-cycle_sleep_time = 0.5
+cycle_sleep_time = 0.1
 blink_time = 0.5
 status_display_time = 1.0
 
-#------------------------------------------------
-# Check For a Demo Test File
-#------------------------------------------------
-demo_file = ""
-if len(sys.argv) == 1:
-  print "Live Mode"
-elif len(sys.argv) == 2:
-#  print "Demo Mode"
-  if not os.path.exists(sys.argv[1]):
-    print "ERROR: Demo file not accessible"
-    exit()
-  else:
-    demo_file = sys.argv[1]
-    print "Demo File = " + demo_file
-else:
-  print usage
-  exit()
+#################################################
 
 #------------------------------------------------
 # Function - Clear Status LED
 #------------------------------------------------
-def ClearStatusLED():
+def LEDStatusOff():
   GPIO.output(led_status_blue_gpio, led_off)
   GPIO.output(led_status_green_gpio, led_off)
 
 #------------------------------------------------
 # Function - Clear Code LED
 #------------------------------------------------
-def ClearCodeLED():
+def LEDCodeOff():
   GPIO.output(led_code_red_gpio, led_off)
   GPIO.output(led_code_green_gpio, led_off)
 
 #------------------------------------------------
 # Function - Clear All LEDs
 #------------------------------------------------
-def ClearAllLED():
-  ClearStatusLED()
-  ClearCodeLED()
+def LEDAllOff():
+  LEDStatusOff()
+  LEDCodeOff()
+
+#------------------------------------------------
+# Function - Flash Status LED Blue
+#------------------------------------------------
+def LEDStatusFlashBlue(flash_time):
+  GPIO.output(led_status_green_gpio,led_off)
+  GPIO.output(led_status_blue_gpio,led_on)
+  time.sleep(flash_time)
+  GPIO.output(led_status_blue_gpio,led_off)
+  time.sleep(flash_time)
+
+#------------------------------------------------
+# Function - Solid Status LED Blue
+#------------------------------------------------
+def LEDStatusSolidBlue():
+  GPIO.output(led_status_green_gpio,led_off)
+  GPIO.output(led_status_blue_gpio,led_on)
+
+#------------------------------------------------
+# Function - Solid Status LED Green
+#------------------------------------------------
+def LEDStatusSolidGreen():
+  GPIO.output(led_status_blue_gpio,led_off)
+  GPIO.output(led_status_green_gpio,led_on)
+
+#------------------------------------------------
+# Function - Flash Code LED Red
+#------------------------------------------------
+def LEDCodeFlashRed(flash_time):
+  GPIO.output(led_code_green_gpio,led_off)
+  GPIO.output(led_code_red_gpio,led_on)
+  time.sleep(flash_time)
+  GPIO.output(led_code_red_gpio,led_off)
+  time.sleep(flash_time)
+
+#------------------------------------------------
+# Function - Solid Code LED Red
+#------------------------------------------------
+def LEDCodeSolidRed():
+  GPIO.output(led_code_green_gpio,led_off)
+  GPIO.output(led_code_red_gpio,led_on)
+
+#------------------------------------------------
+# Function - Solid Code LED Yellow
+#------------------------------------------------
+def LEDCodeSolidYellow():
+  GPIO.output(led_code_green_gpio,led_on)
+  GPIO.output(led_code_red_gpio,led_on)
+
+#------------------------------------------------
+# Function - Solid Code LED Green
+#------------------------------------------------
+def LEDCodeSolidGreen():
+  GPIO.output(led_code_red_gpio,led_off)
+  GPIO.output(led_code_green_gpio,led_on)
 
 #------------------------------------------------
 # Function - Initialize GPIO
@@ -112,17 +154,7 @@ def InitializeGPIO():
   GPIO.setup(led_status_green_gpio, GPIO.OUT)
   GPIO.setup(led_code_red_gpio, GPIO.OUT)
   GPIO.setup(led_code_green_gpio, GPIO.OUT)
-  ClearAllLED()
-
-#------------------------------------------------
-# Function - Flash Main Status LED Blue
-#------------------------------------------------
-def FlashStatusLEDBlue(flash_time):
-  GPIO.output(led_status_green_gpio,led_off)
-  GPIO.output(led_status_blue_gpio,led_on)
-  time.sleep(flash_time)
-  GPIO.output(led_status_blue_gpio,led_off)
-  time.sleep(flash_time)
+  LEDAllOff()
 
 #------------------------------------------------
 # Function - Check That Motion Is Started
@@ -130,7 +162,7 @@ def FlashStatusLEDBlue(flash_time):
 def CheckMotionStarted():
   motion_started = False
   while (motion_started == False):
-    FlashStatusLEDBlue(blink_time)
+    LEDStatusFlashBlue(blink_time)
     proc = subprocess.Popen(["pgrep","motion"],stdout=subprocess.PIPE)
     proc_out = proc.stdout.readline().strip()
     if proc_out != "":
@@ -138,6 +170,8 @@ def CheckMotionStarted():
       print "Camera Motion Detection Started."
     else:
       print "Waiting for Camera Motion Detection to Start..."
+
+#################################################
 
 #------------------------------------------------
 # Class - New Image Event Handler
@@ -154,17 +188,32 @@ class NewFileEventHandler(PatternMatchingEventHandler):
     event.src_path
        path/to/observed/file
     """
-#    print event.src_path, event.event_type
     global new_image_file
     new_image_file = True
     global img_file
     img_file = event.src_path
 
-#  def on_modified(self, event):
-#    self.process(event)
-
   def on_created(self, event):
     self.process(event)
+
+#################################################
+
+#------------------------------------------------
+# Check For a Demo Test File
+#------------------------------------------------
+demo_file = ""
+if len(sys.argv) == 1:
+  print "Live Mode"
+elif len(sys.argv) == 2:
+  if not os.path.exists(sys.argv[1]):
+    print "ERROR: Demo file not accessible"
+    exit()
+  else:
+    demo_file = sys.argv[1]
+    print "Demo File = " + demo_file
+else:
+  print usage
+  exit()
 
 #------------------------------------------------
 # Main Program Loop
@@ -172,7 +221,7 @@ class NewFileEventHandler(PatternMatchingEventHandler):
 try:
   InitializeGPIO()
   CheckMotionStarted()
-  GPIO.output(led_status_blue_gpio,led_on)
+  LEDStatusSolidBlue()
 
   #------------------------------------------------
   # Initialize Output Window
@@ -185,8 +234,8 @@ try:
     #------------------------------------------------
     # Clear Things
     #------------------------------------------------
-    ClearCodeLED()
-    pygame.draw.rect(window,background_color,(0,0,640,480))
+    LEDCodeOff()
+    pygame.draw.rect(window,background_color,full_window_size)
 
     #------------------------------------------------
     # Add Image to Window
@@ -194,9 +243,6 @@ try:
     if demo_file != "":
       img_file = demo_file
     else:
-      # Kludge to test right now with the demo file
-      img_file = "test1.jpg"
-
       observer = Observer()
       observer.schedule(NewFileEventHandler(), path=image_path)
       observer.start()
@@ -205,34 +251,37 @@ try:
       observer.stop()
       observer.join()
       new_image_file = False
-#      print img_file
 
     img = pygame.image.load(img_file)
-#    img = pygame.transform.scale(img,image_size)
     window.blit(img,image_offset)
 
     #------------------------------------------------
     # Parse QR Code
     #------------------------------------------------
-    GPIO.output(led_status_green_gpio,led_on)
     qr = qrtools.QR()
     qr.decode(img_file)
     if qr.decode():
       qr_code = qr.data_to_string()
-      GPIO.output(led_code_green_gpio,led_on)
-      GPIO.output(led_code_red_gpio,led_off)
+      LEDStatusSolidGreen()
+
+      http = urllib3.PoolManager()
+      server_response = http.request('GET', qr_code)
+      server_html = server_response.data
+
     else:
-      qr_code = "Invalid!"
-      GPIO.output(led_code_green_gpio,led_off)
-      GPIO.output(led_code_red_gpio,led_on)
-    GPIO.output(led_status_green_gpio,led_off)
+      qr_code = "No Code!"
+      server_html = ""
+      LEDStatusSolidBlue()
 
     #------------------------------------------------
-    # Priot QR Code in Window
+    # Print QR Code and Server Response in Window
     #------------------------------------------------
     myfont = pygame.font.SysFont(font_type,font_size)
     label = myfont.render(qr_code, 1, font_color)
-    window.blit(label,qr_text_offset)
+    window.blit(label, qr_text_offset)
+
+    label = myfont.render(server_html, 1, font_color)
+    window.blit(label, server_text_offset)
 
     #------------------------------------------------
     # Update Window
