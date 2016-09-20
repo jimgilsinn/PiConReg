@@ -1,8 +1,11 @@
 #!/usr/bin/python
 #################################################
 #
-# BSidesDC QR Code Reader Registration System
-# Using a Raspberry Pi
+# PiConReg
+#
+# Raspberry Pi QR code reader to work with the
+# ConQR system from TrustedSec.
+# https://github.com/trustedsec/conqr
 #
 # Version
 # -----------------------------------------------
@@ -49,7 +52,7 @@ led_off = GPIO.HIGH
 #------------------------------------------------
 # Assign Values for QR Decoder
 #------------------------------------------------
-window_title = "BSidesDC Registration"
+window_title = "PiConReg"
 image_path = "/var/lib/motion"
 window_size = (640,480)
 full_window_size = (0,0,640,480)
