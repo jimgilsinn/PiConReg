@@ -77,7 +77,7 @@ class HTTPHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	# handle basic GET requests
 	def do_GET(self):
-	# import proper style css files here
+		# import proper style css files here
 		parsed_path = urlparse.urlparse(self.path)
 
 		counter = 0
