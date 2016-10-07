@@ -22,7 +22,8 @@ import RPi.GPIO as GPIO
 import pygame, qrtools
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-import urllib3
+import requests
+from HTMLParser import HTMLParser
 
 #################################################
 
@@ -66,6 +67,12 @@ qr_text_offset = (25,25)
 server_text_offset = (25,75)
 new_image_file = False
 img_file = ""
+registered_message = "Attendee Registered! Thank You!"
+registered_color = (0,128,0)
+duplicate_message = "ERROR - Code Previously Registered!"
+duplicate_color = (128,0,0)
+unknown_message = "ERROR - Code Not Recognized"
+unknown_color = (128,0,0)
 
 #------------------------------------------------
 # Assign Values for Different Timers
@@ -203,6 +210,44 @@ class NewFileEventHandler(PatternMatchingEventHandler):
   def on_created(self, event):
     self.process(event)
 
+#------------------------------------------------
+# Class - Parse HTML Response From ConQR Server
+#------------------------------------------------
+class ConQRParser(HTMLParser):
+  def __init__(self):
+    HTMLParser.__init__(self)
+    self.data = []
+    self.recording = 0
+    self.meta_description = False
+    self.content_attr = 'junk'
+
+  def handle_starttag(self, tag, attributes):
+    if tag != 'meta':
+      return
+    if self.recording:
+      self.recording += 1
+      return
+    for name, val in attributes:
+      if name == 'name' and val == 'description':
+        self.meta_description = True
+      if name == 'content' and self.meta_description == True:
+        self.content_attr = val
+        self.meta_description = False
+    else:
+      return
+    self.recording = 1
+
+  def handle_endtag(self, tag):
+    if tag == 'meta' and self.recording:
+      self.recording -= 1
+
+  def handle_data(self, data):
+    if self.recording:
+      self.data.append(data)
+
+  def getContentAttr(self):
+    return self.content_attr
+
 #################################################
 
 #------------------------------------------------
@@ -245,6 +290,48 @@ try:
     pygame.draw.rect(window,background_color,full_window_size)
 
     #------------------------------------------------
+    # Parse QR Code
+    #------------------------------------------------
+    qr = qrtools.QR()
+    qr.decode(img_file)
+    if qr.decode():
+      qr_code = qr.data_to_string()
+      LEDStatusSolidGreen()
+
+      server_response = requests.get(qr_code)
+      parser = ConQRParser()
+      parser.feed(server_response.text)
+      conqr_response = parser.getContentAttr()
+      if conqr_response == 'registered':
+        LEDCodeSolidGreen()
+        response_text = registered_message
+        pygame.draw.rect(window,registered_color,full_window_size)
+      elif conqr_response == 'duplicate':
+        LEDCodeSolidRed()
+        response_text = duplicate_message
+        pygame.draw.rect(window,duplicate_color,full_window_size)
+      else:
+        LEDCodeSolidYellow()
+        response_text = unknown_message
+        pygame.draw.rect(window,unknown_color,full_window_size)
+
+    else:
+      qr_code = "No Code!"
+      response_text = ""
+      pygame.draw.rect(window,background_color,full_window_size)
+      LEDStatusSolidBlue()
+
+    #------------------------------------------------
+    # Print QR Code and Server Response in Window
+    #------------------------------------------------
+    myfont = pygame.font.SysFont(font_type,font_size)
+    label = myfont.render(qr_code, 1, font_color)
+    window.blit(label, qr_text_offset)
+
+    label = myfont.render(response_text, 1, font_color)
+    window.blit(label, server_text_offset)
+
+    #------------------------------------------------
     # Add Image to Window
     #------------------------------------------------
     if demo_file != "":
@@ -261,34 +348,6 @@ try:
 
     img = pygame.image.load(img_file)
     window.blit(img,image_offset)
-
-    #------------------------------------------------
-    # Parse QR Code
-    #------------------------------------------------
-    qr = qrtools.QR()
-    qr.decode(img_file)
-    if qr.decode():
-      qr_code = qr.data_to_string()
-      LEDStatusSolidGreen()
-
-      http = urllib3.PoolManager()
-      server_response = http.request('GET', qr_code)
-      server_html = server_response.data
-
-    else:
-      qr_code = "No Code!"
-      server_html = ""
-      LEDStatusSolidBlue()
-
-    #------------------------------------------------
-    # Print QR Code and Server Response in Window
-    #------------------------------------------------
-    myfont = pygame.font.SysFont(font_type,font_size)
-    label = myfont.render(qr_code, 1, font_color)
-    window.blit(label, qr_text_offset)
-
-    label = myfont.render(server_html, 1, font_color)
-    window.blit(label, server_text_offset)
 
     #------------------------------------------------
     # Update Window
