@@ -281,6 +281,7 @@ try:
   pygame.init()
   window = pygame.display.set_mode(window_size)
   pygame.display.set_caption(window_title)
+  last_qr_code = "No Code!"
 
   while True:
     #------------------------------------------------
@@ -298,22 +299,24 @@ try:
       qr_code = qr.data_to_string()
       LEDStatusSolidGreen()
 
-      server_response = requests.get(qr_code)
-      parser = ConQRParser()
-      parser.feed(server_response.text)
-      conqr_response = parser.getContentAttr()
-      if conqr_response == 'registered':
-        LEDCodeSolidGreen()
-        response_text = registered_message
-        pygame.draw.rect(window,registered_color,full_window_size)
-      elif conqr_response == 'duplicate':
-        LEDCodeSolidRed()
-        response_text = duplicate_message
-        pygame.draw.rect(window,duplicate_color,full_window_size)
-      else:
-        LEDCodeSolidYellow()
-        response_text = unknown_message
-        pygame.draw.rect(window,unknown_color,full_window_size)
+      if qr_code != last_qr_code:
+        last_qr_code = qr_code
+        server_response = requests.get(qr_code)
+        parser = ConQRParser()
+        parser.feed(server_response.text)
+        conqr_response = parser.getContentAttr()
+        if conqr_response == 'registered':
+          LEDCodeSolidGreen()
+          response_text = registered_message
+          pygame.draw.rect(window,registered_color,full_window_size)
+        elif conqr_response == 'duplicate':
+          LEDCodeSolidRed()
+          response_text = duplicate_message
+          pygame.draw.rect(window,duplicate_color,full_window_size)
+        else:
+          LEDCodeSolidYellow()
+          response_text = unknown_message
+          pygame.draw.rect(window,unknown_color,full_window_size)
 
     else:
       qr_code = "No Code!"
