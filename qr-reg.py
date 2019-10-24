@@ -224,8 +224,16 @@ class ConQRParser(HTMLParser):
     self.content_code = ''
     self.meta_email = False
     self.content_email = ''
-    self.meta_ticket = False
-    self.content_ticket = ''
+    self.meta_type = False
+    self.content_type = ''
+	self.meta_title = False
+	self.content_title = ''
+	self.meta_number = False
+	self.content_number = 0
+	self.meta_day = False
+	self.content_day = ''
+	self.meta_color = False
+	self.content_color = ''	
 
   def handle_starttag(self, tag, attributes):
     if tag != 'meta':
@@ -253,11 +261,35 @@ class ConQRParser(HTMLParser):
         self.content_email = val
         self.meta_email = False
       # Look for registered ticket type, if it exists
-      if name == 'name' and val == 'ticket':
-        self.meta_ticket = True
-      if name == 'content' and self.meta_ticket is True:
-        self.content_ticket = val
-        self.meta_ticket = False
+      if name == 'name' and val == 'type':
+        self.meta_type = True
+      if name == 'content' and self.meta_type is True:
+        self.content_type = val
+        self.meta_type = False
+	  # Look for registered ticket type title, if it exists
+	  if name == 'name' and val == 'title':
+	    self.meta_title = True
+	  if name == 'content' and self.meta_title is True:
+	    self.content_title = val
+		self.meta_title = False
+	  # Look for registered ticket type number, if it exists
+	  if name == 'name' and val == 'number':
+	    self.meta_number = True
+	  if name == 'content' and self.meta_number is True:
+	    self.content_number = int(val)
+		self.meta_number = False
+	  # Look for registered ticket type day, if it exists
+	  if name == 'name' and val == 'day':
+	    self.meta_day = True
+	  if name == 'content' and self.meta_day is True:
+	    self.content_day = val
+		self.meta_day = False
+	  # Look for registered ticket type color, if it exists
+	  if name == 'name' and val == 'color':
+	    self.meta_color = True
+	  if name == 'content' and self.meta_color is True:
+	    self.content_color = val
+		self.meta_color = False
     else:
       return
     self.recording = 1
@@ -280,7 +312,19 @@ class ConQRParser(HTMLParser):
     return self.content_email
 
   def getContentTicket(self):
-    return self.content_ticket
+    return self.content_type
+
+  def getContentTitle(self):
+    return self.content_title
+
+  def getContentNumber(self):
+    return self.content_number
+
+  def getContentDay(self):
+    return self.content_day
+
+  def getContentColor(self):
+    return self.content_color  
 
 #################################################
 
